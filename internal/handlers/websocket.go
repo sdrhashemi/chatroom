@@ -4,16 +4,23 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"sync"
 
+	connection_pool "github.com/fishdontexist/chatroom/pkg/connection_pool"
+	"github.com/fishdontexist/chatroom/pkg/nats"
 	"github.com/gorilla/websocket"
 )
 
-// Connection pool for managing users
-var activeConnections = struct {
-	sync.Mutex
-	pool []*websocket.Conn
-}{}
+type Handler struct {
+	Pool      *connection_pool.ConnectionPool
+	Publisher *nats.Publisher
+}
+
+func New(pool *connection_pool.ConnectionPool, publisher *nats.Publisher) *Handler {
+	return &Handler{
+		Pool:      pool,
+		Publisher: publisher,
+	}
+}
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -23,7 +30,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
+func WebSocketHandler(w http.ResponseWriter, r *http.Request, pool *connection_pool.ConnectionPool) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -31,25 +38,16 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Client connected successfully!")
 
-	activeConnections.Lock()
-	activeConnections.pool = append(activeConnections.pool, ws)
-	activeConnections.Unlock()
-	reader(ws)
+	pool.AddConnection(ws)
+	reader(ws, pool)
 
 }
 
-func reader(conn *websocket.Conn) {
+func reader(conn *websocket.Conn, pool *connection_pool.ConnectionPool) {
 	defer func() {
 		// Remove connection from pool when disconnected
 		defer conn.Close()
-		activeConnections.Lock()
-		for i, connection := range activeConnections.pool {
-			if connection == conn {
-				activeConnections.pool = append(activeConnections.pool[:i], activeConnections.pool[i+1:]...)
-				break
-			}
-		}
-		activeConnections.Unlock()
+		pool.RemoveConnection(conn)
 		log.Printf("Client disconnected!")
 	}()
 

@@ -2,18 +2,14 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
+
+	"github.com/fishdontexist/chatroom/internal/api"
 )
 
 func main() {
 	// Set up router
-	router :=
+	router := api.SetupRoutes()
 
-		// Start the HTTP server
-		fmt.Println("Starting WebSocket server on ws://localhost:8080/ws")
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
+	fmt.Println("Starting WebSocket server on ws://localhost:8080/ws")
+
 }
