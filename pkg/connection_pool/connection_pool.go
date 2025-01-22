@@ -1,6 +1,7 @@
 package connection_pool
 
 import (
+	"log"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -30,6 +31,17 @@ func (cp *ConnectionPool) RemoveConnection(conn *websocket.Conn) {
 		if c == conn {
 			cp.pool = append(cp.pool[:i], cp.pool[i+1:]...)
 			break
+		}
+	}
+}
+
+func (cp *ConnectionPool) BroadcastMessageToClients(message []byte) {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+
+	for _, conn := range cp.pool {
+		if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
+			log.Printf("Error writing message to client: %v", err)
 		}
 	}
 }

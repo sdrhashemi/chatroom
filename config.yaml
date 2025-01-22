@@ -1,6 +1,6 @@
 app:
   name: "Sadra's chatroom"
-  port: 8080
+  port: "8080"
 
 nats:
   url: "nats://localhost:4222"

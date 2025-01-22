@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -54,11 +53,11 @@ func (h *Handler) reader(conn *websocket.Conn) {
 	for {
 		_, p, err := conn.ReadMessage()
 		if err != nil {
-			log.Println(err)
-			return
+			log.Printf("Error reading message: %v", err)
+			continue
 		}
 
-		fmt.Println(string(p))
+		log.Printf("Message received: %s", p)
 		// broadcastMessage(messageType, p)
 		// if err := conn.WriteMessage(messageType, p); err != nil {
 		// 	log.Println(err)

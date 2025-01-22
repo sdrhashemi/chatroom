@@ -4,11 +4,16 @@ import (
 	"log"
 
 	"github.com/fishdontexist/chatroom/internal/app"
+	"github.com/fishdontexist/chatroom/internal/config"
 )
 
 func main() {
-	natsURL := "nats://localhost:4222"
-	chatApp, err := app.New(natsURL)
+	cfg, err := config.LoadConfig("config.yaml")
+	if err != nil {
+		log.Fatalf("Error loading config: %v", err)
+	}
+
+	chatApp, err := app.New(cfg.Nats.URL)
 	if err != nil {
 		log.Fatalf("Error creating app: %v", err)
 	}
@@ -16,6 +21,6 @@ func main() {
 
 	chatApp.SetupRoutes()
 
-	chatApp.StartServer(":8080")
+	chatApp.StartServer(cfg.App.Port)
 
 }
