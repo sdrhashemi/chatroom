@@ -1,18 +1,18 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
-	"github.com/fishdontexist/chatroom/internal/api"
+	"github.com/fishdontexist/chatroom/internal/app"
 )
 
 func main() {
 	natsURL := "nats://localhost:4222"
-	chatApp, err := app.NewApp(natsURL)
-	if err!= nil {
+	chatApp, err := app.New(natsURL)
+	if err != nil {
 		log.Fatalf("Error creating app: %v", err)
 	}
-	defer chatApp.Connection.Close()
+	defer chatApp.Publisher.Close()
 
 	chatApp.SetupRoutes()
 
