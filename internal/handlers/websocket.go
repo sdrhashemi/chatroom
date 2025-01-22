@@ -30,7 +30,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func WebSocketHandler(w http.ResponseWriter, r *http.Request, pool *connection_pool.ConnectionPool) {
+func (h *Handler) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -38,16 +38,16 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request, pool *connection_p
 
 	log.Println("Client connected successfully!")
 
-	pool.AddConnection(ws)
-	reader(ws, pool)
+	h.Pool.AddConnection(ws)
+	h.reader(ws)
 
 }
 
-func reader(conn *websocket.Conn, pool *connection_pool.ConnectionPool) {
+func (h *Handler) reader(conn *websocket.Conn) {
 	defer func() {
 		// Remove connection from pool when disconnected
 		defer conn.Close()
-		pool.RemoveConnection(conn)
+		h.Pool.RemoveConnection(conn)
 		log.Printf("Client disconnected!")
 	}()
 
@@ -60,9 +60,13 @@ func reader(conn *websocket.Conn, pool *connection_pool.ConnectionPool) {
 
 		fmt.Println(string(p))
 		// broadcastMessage(messageType, p)
-		if err := conn.WriteMessage(messageType, p); err != nil {
-			log.Println(err)
-			return
-		}
+		// if err := conn.WriteMessage(messageType, p); err != nil {
+		// 	log.Println(err)
+		// 	return
+		// }
+
+		// Publish message to NATS
+		h.Publisher.Publish("chat", string(p))
+
 	}
 }
