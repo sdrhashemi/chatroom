@@ -7,9 +7,15 @@ import (
 )
 
 func main() {
-	// Set up router
-	router := api.SetupRoutes()
+	natsURL := "nats://localhost:4222"
+	chatApp, err := app.NewApp(natsURL)
+	if err!= nil {
+		log.Fatalf("Error creating app: %v", err)
+	}
+	defer chatApp.Connection.Close()
 
-	fmt.Println("Starting WebSocket server on ws://localhost:8080/ws")
+	chatApp.SetupRoutes()
+
+	chatApp.StartServer(":8080")
 
 }
