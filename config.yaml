@@ -1,0 +1,11 @@
+app:
+  name: "Sadra's chatroom"
+  port: 8080
+
+nats:
+  url: "nats://localhost:4222"
+  chatroomSubject: "chatroom"
+  chatroomUsers: "chatroom-users"
+
+logging:
+  level: info
