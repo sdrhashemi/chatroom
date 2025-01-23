@@ -6,17 +6,17 @@ import (
 
 	"github.com/fishdontexist/chatroom/internal/handlers"
 	"github.com/fishdontexist/chatroom/pkg/connection_pool"
-	"github.com/fishdontexist/chatroom/pkg/nats"
+	nats_lib "github.com/fishdontexist/chatroom/pkg/nats"
 )
 
 type App struct {
 	Handler    *handlers.Handler
 	Connection *connection_pool.ConnectionPool
-	Publisher  *nats.Publisher
+	Publisher  *nats_lib.Publisher
 }
 
 func New(natsURL string) (*App, error) {
-	publisher, err := nats.New(natsURL)
+	publisher, err := nats_lib.New(natsURL)
 	if err != nil {
 		return nil, err
 	}

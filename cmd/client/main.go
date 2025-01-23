@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/gorilla/websocket"
@@ -26,6 +27,32 @@ func main() {
 
 	done := make(chan struct{})
 
+	// fmt.Print("Please Enter your name: ")
+	// credentialScanner := bufio.NewScanner(os.Stdin)
+	// var userName string
+
+	// for {
+	// 	if credentialScanner.Scan() {
+	// 		userName = strings.TrimSpace(credentialScanner.Text())
+	// 		if userName != "" {
+	// 			break
+	// 		}
+	// 		fmt.Print("Name cannot be empty, enter your name again: ")
+	// 	} else {
+	// 		log.Println("Error reading input, existing...")
+	// 		return
+	// 	}
+	// }
+	// if err := conn.WriteMessage(websocket.TextMessage, []byte(userName)); err != nil {
+	// 	log.Println("Error sending message: ", err)
+	// 	return
+	// }
+
+	if !handleUsernameSetup(conn) {
+		log.Println("Failed to set up username. Exiting...")
+		return
+	}
+
 	go func() {
 		defer close(done)
 		for {
@@ -43,6 +70,10 @@ func main() {
 		fmt.Print("> ")
 		for scanner.Scan() {
 			text := scanner.Text()
+			if text == "" {
+				fmt.Print("> ")
+				continue
+			}
 			if text == "/exit" {
 				log.Println("Exiting...")
 				interrupt <- syscall.SIGINT
@@ -69,6 +100,53 @@ func main() {
 		if err != nil {
 			log.Println("Error sending close message: ", err)
 
+		}
+	}
+}
+
+func handleUsernameSetup(conn *websocket.Conn) bool {
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for {
+		_, serverMessage, err := conn.ReadMessage()
+		if err != nil {
+			log.Printf("Error reading server message: %v", err)
+			return false
+		}
+
+		fmt.Println(string(serverMessage))
+
+		if scanner.Scan() {
+			username := strings.TrimSpace(scanner.Text())
+			if username == "" {
+				fmt.Println("Username cannot be empty, try again: ")
+				continue
+			}
+
+			err := conn.WriteMessage(websocket.TextMessage, []byte(username))
+			if err != nil {
+				log.Printf("Error sending username to server: %v", err)
+				return false
+			}
+
+			// wait for server response
+			_, response, err := conn.ReadMessage()
+			if err != nil {
+				log.Printf("Error reading server response: %v", err)
+				return false
+			}
+
+			if string(response) == "OK" {
+				log.Println("Username accepted.")
+				return true
+			}
+
+			// if server rejected username
+			fmt.Println(string(response))
+
+		} else {
+			log.Println("Error reading input. Exiting...")
+			return false
 		}
 	}
 }

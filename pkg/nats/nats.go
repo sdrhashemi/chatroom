@@ -1,4 +1,4 @@
-package nats
+package nats_lib
 
 import (
 	"log"
@@ -25,6 +25,10 @@ func (p *Publisher) Publish(subject string, message string) {
 	if err := p.conn.Publish(subject, messageToByte); err != nil {
 		log.Printf("Error publishing the message to NATS: %v", err)
 	}
+}
+
+func (p *Publisher) NATSConnection() *nats.Conn {
+	return p.conn
 }
 
 func stringToBytes(message string) []byte {

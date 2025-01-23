@@ -9,30 +9,25 @@ import (
 
 type ConnectionPool struct {
 	mu   sync.Mutex
-	Pool []*websocket.Conn
+	Pool map[string]*websocket.Conn
 }
 
 func New() *ConnectionPool {
 	return &ConnectionPool{
-		Pool: make([]*websocket.Conn, 0),
+		Pool: make(map[string]*websocket.Conn),
 	}
 }
 
-func (cp *ConnectionPool) AddConnection(conn *websocket.Conn) {
+func (cp *ConnectionPool) AddConnection(name string, conn *websocket.Conn) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
-	cp.Pool = append(cp.Pool, conn)
+	cp.Pool[name] = conn
 }
 
-func (cp *ConnectionPool) RemoveConnection(conn *websocket.Conn) {
+func (cp *ConnectionPool) RemoveConnection(name string, conn *websocket.Conn) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
-	for i, c := range cp.Pool {
-		if c == conn {
-			cp.Pool = append(cp.Pool[:i], cp.Pool[i+1:]...)
-			break
-		}
-	}
+	delete(cp.Pool, name)
 }
 
 func (cp *ConnectionPool) BroadcastMessageToClients(message []byte) {
@@ -46,6 +41,31 @@ func (cp *ConnectionPool) BroadcastMessageToClients(message []byte) {
 	}
 }
 
+func (cp *ConnectionPool) UserNameExists(name string) bool {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+	_, exists := cp.Pool[name]
+	return exists
+}
+
 func (cp *ConnectionPool) GetUsers() []*websocket.Conn {
-	return cp.Pool
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+
+	connections := make([]*websocket.Conn, 0, len(cp.Pool))
+	for _, conn := range cp.Pool {
+		connections = append(connections, conn)
+	}
+	return connections
+}
+
+func (cp *ConnectionPool) GetUserNames() []string {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+
+	userNames := make([]string, 0, len(cp.Pool))
+	for index, _ := range cp.Pool {
+		userNames = append(userNames, index)
+	}
+	return userNames
 }
