@@ -72,6 +72,8 @@ func (c *Client) readMessages() {
 			} else {
 				ui.DisplayMessage("Invalid users list recieved. cannot show")
 			}
+		case "chatroom":
+			ui.DisplayNeutral(msg.Data.(string))
 		default:
 			ui.DisplayMessage(fmt.Sprintf("Unknown message type: %s", msg.Type))
 		}
@@ -111,7 +113,7 @@ func (c *Client) handleUsernameSetup() bool {
 			return false
 		}
 
-		ui.DisplayMessage(string(data))
+		ui.DisplayNeutral(string(data))
 
 		username := ui.PromptUserName()
 		if username == "" {
@@ -131,7 +133,7 @@ func (c *Client) handleUsernameSetup() bool {
 		}
 
 		if string(response) == "OK" {
-			log.Println("Username accepted.")
+			ui.DisplaySuccess("Username Accepted")
 			return true
 		}
 

@@ -7,8 +7,8 @@ type Message struct {
 	Data interface{}
 }
 
-func Serialize(msg Message) ([]byte, error) {
-	return json.Marshal(msg)
+func (m *Message) Serialize() ([]byte, error) {
+	return json.Marshal(m)
 }
 
 func Deserialize(data []byte) (Message, error) {

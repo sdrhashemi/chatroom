@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	connection_pool "github.com/fishdontexist/chatroom/pkg/connection_pool"
+	"github.com/fishdontexist/chatroom/pkg/message"
 	nats_lib "github.com/fishdontexist/chatroom/pkg/nats"
 	"github.com/gorilla/websocket"
 	"github.com/nats-io/nats.go"
@@ -53,7 +54,15 @@ func (h *Handler) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	h.Pool.AddConnection(userName, ws)
 
 	log.Println("Client connected successfully!")
-
+	joindMessage := message.Message{
+		Type: "chatroom",
+		Data: fmt.Sprintf("*%s has joined the chat*", userName),
+	}
+	serilizedJoindMessage, err := joindMessage.Serialize()
+	if err != nil {
+		log.Printf("Error serializing join message: %v", err)
+	}
+	h.Publisher.Publish("chat", string(serilizedJoindMessage))
 	h.reader(userName, ws)
 
 }
@@ -63,8 +72,15 @@ func (h *Handler) reader(username string, conn *websocket.Conn) {
 		// Remove connection from pool when disconnected
 		defer conn.Close()
 		h.Pool.RemoveConnection(username, conn)
-		leaveMessage := fmt.Sprintf("chatroom: *%s left the chatroom*", username)
-		h.Publisher.Publish("chat", leaveMessage)
+		leaveMessage := message.Message{
+			Type: "chatroom",
+			Data: fmt.Sprintf("*%s has left the chat*", username),
+		}
+		finalResponse, err := leaveMessage.Serialize()
+		if err != nil {
+			log.Print("Error serializing leave message: %v", err)
+		}
+		h.Publisher.Publish("chat", string(finalResponse))
 		log.Printf("Client disconnected!")
 	}()
 
