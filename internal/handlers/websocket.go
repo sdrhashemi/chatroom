@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -62,8 +63,8 @@ func (h *Handler) reader(username string, conn *websocket.Conn) {
 		// Remove connection from pool when disconnected
 		defer conn.Close()
 		h.Pool.RemoveConnection(username, conn)
-		fmt.Sprintf("chatroom: *%s left the chatroom*", username)
-		h.Publisher.Publish("chat", "")
+		leaveMessage := fmt.Sprintf("chatroom: *%s left the chatroom*", username)
+		h.Publisher.Publish("chat", leaveMessage)
 		log.Printf("Client disconnected!")
 	}()
 
@@ -75,22 +76,23 @@ func (h *Handler) reader(username string, conn *websocket.Conn) {
 		}
 
 		log.Printf("Message received from %s: %s", username, string(message))
-		// broadcastMessage(messageType, p)
-		// if err := conn.WriteMessage(messageType, p); err != nil {
-		// 	log.Println(err)
-		// 	return
-		// }
 
-		// Commands
-		// if string(message) == "#exit" {
-		// 	log.Printf("Client %s disconnected!", conn.RemoteAddr())
-		// 	break
-		// } else if string(message) == "#users" {
-		// 	activeUsers := h.Pool.GetUsers()
-		// 	fmt.Println(activeUsers)
-		// 	continue
-		// }
-
+		if string(message) == "#users" {
+			users := h.Pool.GetUserNames()
+			response := map[string]interface{}{
+				"type": "users",
+				"data": users,
+			}
+			jsonUsersData, err := json.Marshal(response)
+			if err != nil {
+				log.Printf("Error marshaling users list to JSON: %v", err)
+				continue
+			}
+			if err := conn.WriteMessage(websocket.TextMessage, jsonUsersData); err != nil {
+				log.Printf("Error sending users list to client: %v", err)
+			}
+			continue
+		}
 		// Publish message to nats_lib
 		h.Publisher.Publish("chat", fmt.Sprintf("%s: %s", username, string(message)))
 
@@ -98,11 +100,11 @@ func (h *Handler) reader(username string, conn *websocket.Conn) {
 }
 
 func (h *Handler) captureClientName(conn *websocket.Conn) (string, error) {
-	// conn.SetReadDeadline(time.Now().Add(ConnectionReadDeadline * time.Second))
 
 	for {
 
-		if err := conn.WriteMessage(websocket.TextMessage, []byte("Please enter a unique name: ")); err != nil {
+		err := conn.WriteMessage(websocket.TextMessage, []byte("Please enter a unique name: "))
+		if err != nil {
 			return "", fmt.Errorf("failed to prompt client for name: %v", err)
 
 		}
@@ -114,7 +116,8 @@ func (h *Handler) captureClientName(conn *websocket.Conn) (string, error) {
 
 		clientUserName := strings.TrimSpace(string(message))
 		if clientUserName == "" {
-			if err := conn.WriteMessage(websocket.TextMessage, []byte("Name cannot be empty. enter your name again: ")); err != nil {
+			err := conn.WriteMessage(websocket.TextMessage, []byte("Name cannot be empty. enter your name again: "))
+			if err != nil {
 				return "", fmt.Errorf("failed to send empty name message: %v", err)
 			}
 			continue

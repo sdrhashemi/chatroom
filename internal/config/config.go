@@ -2,14 +2,16 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
 	App struct {
-		Name string `yaml:"name"`
-		Port string `yaml:"port"`
+		Name      string `yaml:"name"`
+		Port      string `yaml:"port"`
+		ServerURL string `yaml:"serverURL"`
 	} `yaml:"app"`
 	Nats struct {
 		URL             string `yaml:"url"`
@@ -21,8 +23,9 @@ type Config struct {
 	} `yaml:"logging"`
 }
 
-func LoadConfig(path string) (*Config, error) {
-	file, err := os.ReadFile(path)
+func LoadConfig() (*Config, error) {
+	configPath := filepath.Join("..", "..", "config.yaml")
+	file, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}
