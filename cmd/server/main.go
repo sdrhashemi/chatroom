@@ -3,17 +3,17 @@ package main
 import (
 	"log"
 
-	"github.com/fishdontexist/chatroom/internal/app"
+	"github.com/fishdontexist/chatroom/internal/app/server"
 	"github.com/fishdontexist/chatroom/internal/config"
 )
 
 func main() {
-	cfg, err := config.LoadConfig("../../config.yaml")
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
 	}
 
-	chatApp, err := app.New(cfg.Nats.URL)
+	chatApp, err := server.New(cfg.Nats.URL)
 	if err != nil {
 		log.Fatalf("Error creating app: %v", err)
 	}
