@@ -51,21 +51,31 @@ func (h *Handler) reader(conn *websocket.Conn) {
 	}()
 
 	for {
-		_, p, err := conn.ReadMessage()
+		_, message, err := conn.ReadMessage()
 		if err != nil {
 			log.Printf("Error reading message: %v", err)
 			continue
 		}
 
-		log.Printf("Message received: %s", p)
+		log.Printf("Message received: %s", string(message))
 		// broadcastMessage(messageType, p)
 		// if err := conn.WriteMessage(messageType, p); err != nil {
 		// 	log.Println(err)
 		// 	return
 		// }
 
+		// Commands
+		// if string(message) == "#exit" {
+		// 	log.Printf("Client %s disconnected!", conn.RemoteAddr())
+		// 	break
+		// } else if string(message) == "#users" {
+		// 	activeUsers := h.Pool.GetUsers()
+		// 	fmt.Println(activeUsers)
+		// 	continue
+		// }
+
 		// Publish message to NATS
-		h.Publisher.Publish("chat", string(p))
+		h.Publisher.Publish("chat", string(message))
 
 	}
 }
