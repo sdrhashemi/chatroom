@@ -16,7 +16,7 @@ WORKDIR /app
 
 COPY --from=builder /app/chatroom .
 
-COPY ./config.yaml .
+COPY .env .
 
 EXPOSE 8080
 

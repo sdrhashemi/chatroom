@@ -17,15 +17,10 @@ type Config struct {
 	Nats struct {
 		URL             string
 		ChatroomSubject string
-		ChatroomUsers   string
-	}
-	Logging struct {
-		Level string
 	}
 }
 
 func LoadConfig() (*Config, error) {
-	// Dynamically locate the .env file in the project root
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		return nil, err
@@ -37,7 +32,6 @@ func LoadConfig() (*Config, error) {
 		log.Printf("Warning: Could not load .env file: %v", err)
 	}
 
-	// Populate the config struct from environment variables
 	cfg := &Config{
 		App: struct {
 			Name      string
@@ -51,16 +45,9 @@ func LoadConfig() (*Config, error) {
 		Nats: struct {
 			URL             string
 			ChatroomSubject string
-			ChatroomUsers   string
 		}{
 			URL:             os.Getenv("NATS_URL"),
 			ChatroomSubject: os.Getenv("NATS_CHATROOM_SUBJECT"),
-			ChatroomUsers:   os.Getenv("NATS_CHATROOM_USERS"),
-		},
-		Logging: struct {
-			Level string
-		}{
-			Level: os.Getenv("LOGGING_LEVEL"),
 		},
 	}
 
@@ -72,24 +59,19 @@ func LoadConfig() (*Config, error) {
 	return cfg, nil
 }
 
-// Helper function to locate the project root dynamically
 func findProjectRoot() (string, error) {
-	// Start from the current working directory
 	dir, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
 
 	for {
-		// Check if .env exists in the current directory
 		if _, err := os.Stat(filepath.Join(dir, ".env")); err == nil {
 			return dir, nil
 		}
 
-		// Move to the parent directory
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			// Reached the filesystem root
 			return "", os.ErrNotExist
 		}
 		dir = parent
