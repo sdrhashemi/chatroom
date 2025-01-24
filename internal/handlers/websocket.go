@@ -14,7 +14,11 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-const ConnectionReadDeadline = 30
+const (
+	ConnectionReadDeadline = 30
+	AcknowledgmentMessage  = "OK"
+	UsernameAccepted       = "Username Accepted"
+)
 
 type Handler struct {
 	Pool      *connection_pool.ConnectionPool
@@ -41,7 +45,8 @@ var upgrader = websocket.Upgrader{
 func (h *Handler) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		log.Println("Websocket upgrade failed: ", err)
+		return
 	}
 
 	userName, err := h.captureClientName(ws)
@@ -52,17 +57,10 @@ func (h *Handler) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.Pool.AddConnection(userName, ws)
+	log.Println("Client connected successfully:", userName)
 
-	log.Println("Client connected successfully!")
-	joindMessage := message.Message{
-		Type: "chatroom",
-		Data: fmt.Sprintf("*%s has joined the chat*", userName),
-	}
-	serilizedJoindMessage, err := joindMessage.Serialize()
-	if err != nil {
-		log.Printf("Error serializing join message: %v", err)
-	}
-	h.Publisher.Publish("chat", string(serilizedJoindMessage))
+	// message broadcast to all active users that someone has joind just now
+	h.joindMessagePublish(userName)
 	h.reader(userName, ws)
 
 }
@@ -72,15 +70,8 @@ func (h *Handler) reader(username string, conn *websocket.Conn) {
 		// Remove connection from pool when disconnected
 		defer conn.Close()
 		h.Pool.RemoveConnection(username, conn)
-		leaveMessage := message.Message{
-			Type: "chatroom",
-			Data: fmt.Sprintf("*%s has left the chat*", username),
-		}
-		finalResponse, err := leaveMessage.Serialize()
-		if err != nil {
-			log.Print("Error serializing leave message: %v", err)
-		}
-		h.Publisher.Publish("chat", string(finalResponse))
+		// publish the message that someone has left
+		h.leaveMessagePublish(username)
 		log.Printf("Client disconnected!")
 	}()
 
@@ -93,19 +84,16 @@ func (h *Handler) reader(username string, conn *websocket.Conn) {
 
 		log.Printf("Message received from %s: %s", username, string(message))
 
+		// Acknowlegement message revcieved to the client
+		err = sendClientAcknowledgment(conn)
+		if err != nil {
+			log.Printf("Error sending acknowledgment to %s: %v", username, err)
+		}
+
 		if string(message) == "#users" {
-			users := h.Pool.GetUserNames()
-			response := map[string]interface{}{
-				"type": "users",
-				"data": users,
-			}
-			jsonUsersData, err := json.Marshal(response)
+			err = h.handleUserCommand(conn)
 			if err != nil {
-				log.Printf("Error marshaling users list to JSON: %v", err)
-				continue
-			}
-			if err := conn.WriteMessage(websocket.TextMessage, jsonUsersData); err != nil {
-				log.Printf("Error sending users list to client: %v", err)
+				log.Println("Error marshaling or sending the users list to the clinet: ", err)
 			}
 			continue
 		}
@@ -119,9 +107,9 @@ func (h *Handler) captureClientName(conn *websocket.Conn) (string, error) {
 
 	for {
 
-		err := conn.WriteMessage(websocket.TextMessage, []byte("Please enter a unique name: "))
+		err := sendMessageViaWebsocket(conn, "Please enter a unique name: ")
 		if err != nil {
-			return "", fmt.Errorf("failed to prompt client for name: %v", err)
+			return "", fmt.Errorf("error sending username prompt: %v", err)
 
 		}
 
@@ -132,7 +120,7 @@ func (h *Handler) captureClientName(conn *websocket.Conn) (string, error) {
 
 		clientUserName := strings.TrimSpace(string(message))
 		if clientUserName == "" {
-			err := conn.WriteMessage(websocket.TextMessage, []byte("Name cannot be empty. enter your name again: "))
+			err := sendMessageViaWebsocket(conn, "Name cannot be empty. enter your name again: ")
 			if err != nil {
 				return "", fmt.Errorf("failed to send empty name message: %v", err)
 			}
@@ -143,7 +131,7 @@ func (h *Handler) captureClientName(conn *websocket.Conn) (string, error) {
 		exists := h.Pool.UserNameExists(clientUserName)
 
 		if exists {
-			err = conn.WriteMessage(websocket.TextMessage, []byte("Username already exists, enter another name: "))
+			err = sendMessageViaWebsocket(conn, "Username already exists, enter another name: ")
 			if err != nil {
 				return "", fmt.Errorf("failed to send duplicate name message: %v", err)
 			}
@@ -152,7 +140,7 @@ func (h *Handler) captureClientName(conn *websocket.Conn) (string, error) {
 		}
 
 		// name is unique
-		err = conn.WriteMessage(websocket.TextMessage, []byte("OK"))
+		err = sendMessageViaWebsocket(conn, UsernameAccepted)
 
 		return clientUserName, nil
 
@@ -169,4 +157,68 @@ func (h *Handler) subscribeToNATS() {
 	if err != nil {
 		log.Fatalf("Error subscribing to nats_lib: %v", err)
 	}
+}
+
+func (h *Handler) joindMessagePublish(username string) {
+	joindMessage := message.Message{
+		Type: "chatroom",
+		Data: fmt.Sprintf("*%s has joined the chat*", username),
+	}
+	serilizedJoindMessage, err := joindMessage.Serialize()
+	if err != nil {
+		log.Printf("Error serializing join message: %v", err)
+	}
+	h.Publisher.Publish("chat", string(serilizedJoindMessage))
+
+}
+
+func (h *Handler) leaveMessagePublish(username string) {
+
+	leaveMessage := message.Message{
+		Type: "chatroom",
+		Data: fmt.Sprintf("*%s has left the chat*", username),
+	}
+	finalResponse, err := leaveMessage.Serialize()
+	if err != nil {
+		log.Print("Error serializing leave message: %v", err)
+	}
+	h.Publisher.Publish("chat", string(finalResponse))
+}
+
+func (h *Handler) handleUserCommand(conn *websocket.Conn) error {
+	users := h.Pool.GetUserNames()
+	response := map[string]interface{}{
+		"type": "users",
+		"data": users,
+	}
+	jsonUsersData, err := json.Marshal(response)
+	if err != nil {
+		return err
+	}
+	if err := conn.WriteMessage(websocket.TextMessage, jsonUsersData); err != nil {
+		return err
+	}
+	return nil
+}
+
+func sendClientAcknowledgment(conn *websocket.Conn) error {
+	okResponse := map[string]string{
+		"type": "ack",
+		"data": AcknowledgmentMessage,
+	}
+	jsonOkResponse, err := json.Marshal(okResponse)
+	if err != nil {
+		return err
+	}
+	if err := conn.WriteMessage(websocket.TextMessage, jsonOkResponse); err != nil {
+		return err
+	}
+	return nil
+}
+
+func sendMessageViaWebsocket(conn *websocket.Conn, message string) error {
+	if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
+		return err
+	}
+	return nil
 }

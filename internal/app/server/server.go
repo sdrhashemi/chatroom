@@ -10,9 +10,7 @@ import (
 )
 
 type App struct {
-	Handler    *handlers.Handler
-	Connection *connection_pool.ConnectionPool
-	Publisher  *nats_lib.Publisher
+	Handler *handlers.Handler
 }
 
 func New(natsURL string) (*App, error) {
@@ -26,9 +24,7 @@ func New(natsURL string) (*App, error) {
 	handler := handlers.New(pool, publisher)
 
 	return &App{
-		Handler:    handler,
-		Connection: pool,
-		Publisher:  publisher,
+		Handler: handler,
 	}, nil
 }
 
@@ -39,4 +35,5 @@ func (a *App) SetupRoutes() {
 func (a *App) StartServer(addr string) {
 	log.Printf("Starting server on %s", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
+
 }

@@ -40,18 +40,21 @@ func DisplayUsers(users []interface{}) {
 	fmt.Print("> ")
 }
 
-func DisplayError(text error) {
-	fmt.Println(ColorRed + text.Error() + ColorReset)
+func DisplayError(text string, exiting bool) {
+	if !exiting {
+		fmt.Printf("\r%s%s%s\n> ", ColorRed, text, ColorReset)
+	}
+	fmt.Printf("\r%s%s%s", ColorRed, text, ColorReset)
 }
 
 func DisplaySuccess(text string) {
-	fmt.Println(ColorGreen + text + ColorReset)
+	fmt.Printf("\r%s%s%s\n> ", ColorGreen, text, ColorReset)
 }
 
 func DisplayExiting(text string) {
-	fmt.Println(ColorBlue + text + ColorReset)
+	fmt.Printf("\r%s%s%s\n> ", ColorBlue, text, ColorReset)
 }
 
 func DisplayNeutral(text string) {
-	fmt.Println(ColorYellow + text + ColorReset)
+	fmt.Printf("\r%s%s%s\n> ", ColorYellow, text, ColorReset)
 }

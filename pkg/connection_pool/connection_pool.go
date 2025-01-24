@@ -7,6 +7,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type IConnectionPool interface {
+	AddConnection(userName string, conn *websocket.Conn)
+	RemoveConnection(userName string, conn *websocket.Conn)
+	UserNameExists(username string) bool
+	GetUserNames() []string
+	GetUsers() []*websocket.Conn
+	BroadcastMessageToClients(message []byte)
+}
+
 type ConnectionPool struct {
 	mu   sync.Mutex
 	Pool map[string]*websocket.Conn

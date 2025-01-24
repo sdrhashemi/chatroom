@@ -17,7 +17,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating app: %v", err)
 	}
-	defer chatApp.Publisher.Close()
+	defer chatApp.Handler.Publisher.Close()
 
 	chatApp.SetupRoutes()
 

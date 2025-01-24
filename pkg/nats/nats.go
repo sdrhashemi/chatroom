@@ -6,6 +6,11 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
+type IPublisher interface {
+	Publish(subject string, message string)
+	NATSConnection() *nats.Conn
+}
+
 type Publisher struct {
 	conn *nats.Conn
 }

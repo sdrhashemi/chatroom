@@ -3,7 +3,6 @@ package client
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -13,6 +12,8 @@ import (
 	"github.com/fishdontexist/chatroom/pkg/message"
 	"github.com/gorilla/websocket"
 )
+
+const UsernameAccepted = "Username Accepted"
 
 type Client struct {
 	conn *websocket.Conn
@@ -37,7 +38,7 @@ func (c *Client) Start() {
 	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	if !c.handleUsernameSetup() {
-		fmt.Println("Failed to set up username. Exiting...")
+		ui.DisplayError("Failed to set up username. Exiting...", true)
 		return
 	}
 
@@ -47,7 +48,7 @@ func (c *Client) Start() {
 	select {
 	case <-c.done:
 	case <-interrupt:
-		log.Println("Interrupt signal received, shutting down...")
+		ui.DisplayError("Interrupt signal received, shutting down...", true)
 		c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	}
 }
@@ -57,7 +58,7 @@ func (c *Client) readMessages() {
 	for {
 		_, data, err := c.conn.ReadMessage()
 		if err != nil {
-			log.Printf("Error reading message: %v", err)
+			ui.DisplayError(fmt.Sprintf("Error reading message: %v", err), true)
 			continue
 		}
 		msg, err := message.Deserialize(data)
@@ -74,8 +75,10 @@ func (c *Client) readMessages() {
 			}
 		case "chatroom":
 			ui.DisplayNeutral(msg.Data.(string))
+		case "ack":
+			ui.DisplaySuccess("./")
 		default:
-			ui.DisplayMessage(fmt.Sprintf("Unknown message type: %s", msg.Type))
+			ui.DisplayError(fmt.Sprintf("Unknown message type: %s", msg.Type), false)
 		}
 	}
 }
@@ -99,8 +102,8 @@ func (c *Client) writeMessages() {
 
 		err := c.conn.WriteMessage(websocket.TextMessage, []byte(text))
 		if err != nil {
-			log.Printf("Error sending message: %v", err)
-			return
+			ui.DisplayError(fmt.Sprintf("Error sending message: %v", err), false)
+			continue
 		}
 	}
 }
@@ -109,7 +112,7 @@ func (c *Client) handleUsernameSetup() bool {
 	for {
 		_, data, err := c.conn.ReadMessage()
 		if err != nil {
-			log.Printf("Error reading server message: %v", err)
+			ui.DisplayError(fmt.Sprintf("Error reading server message: %v", err), false)
 			return false
 		}
 
@@ -122,17 +125,17 @@ func (c *Client) handleUsernameSetup() bool {
 
 		err = c.conn.WriteMessage(websocket.TextMessage, []byte(username))
 		if err != nil {
-			log.Printf("Error sending username: %v", err)
+			ui.DisplayError(fmt.Sprintf("Error sending username: %v", err), false)
 			return false
 		}
 
 		_, response, err := c.conn.ReadMessage()
 		if err != nil {
-			log.Printf("Error reading server response: %v", err)
+			ui.DisplayError(fmt.Sprintf("Error reading server response: %v", err), false)
 			return false
 		}
 
-		if string(response) == "OK" {
+		if string(response) == UsernameAccepted {
 			ui.DisplaySuccess("Username Accepted")
 			return true
 		}
