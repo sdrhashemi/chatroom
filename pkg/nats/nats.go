@@ -18,6 +18,7 @@ type Publisher struct {
 func New(natsURL string) (*Publisher, error) {
 	nc, err := nats.Connect(natsURL)
 	if err != nil {
+		log.Println(natsURL)
 		return nil, err
 	}
 

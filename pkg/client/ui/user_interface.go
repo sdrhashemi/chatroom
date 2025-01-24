@@ -30,12 +30,12 @@ func DisplayMessage(msg string) {
 
 func DisplayUsers(users []interface{}) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, ColorYellow+"**ACTIVE USERS**\t"+ColorReset)
+	fmt.Fprintln(w, ColorYellow+"\n**ACTIVE USERS**\t"+ColorReset)
 	fmt.Fprintln(w, ColorYellow+"--------\t"+ColorReset)
 	for _, user := range users {
 		fmt.Fprintf(w, "%s\t\n", user)
 	}
-	fmt.Fprintln(w, ColorYellow+"--------\t"+ColorReset)
+	fmt.Fprintln(w, ColorYellow+"--------\t "+ColorReset)
 	w.Flush()
 	fmt.Print("> ")
 }

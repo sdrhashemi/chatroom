@@ -1,10 +1,10 @@
 app:
   name: "Sadra's chatroom"
-  port: ":8080"
-  serverURL: "ws://localhost:8080/ws"
+  port: "0.0.0.0:8080"
+  serverURL: "ws://127.0.0.1:8080/ws"
 
 nats:
-  url: "nats://localhost:4222"
+  url: "nats://nats:4222"
   chatroomSubject: "chatroom"
   
 

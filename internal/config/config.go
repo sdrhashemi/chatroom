@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 
@@ -24,7 +25,18 @@ type Config struct {
 }
 
 func LoadConfig() (*Config, error) {
-	configPath := filepath.Join("..", "..", "config.yaml")
+	configPath := os.Getenv("CONFIG_PATH")
+	if configPath == "" {
+		// Default to a relative path if no environment variable is set
+		configPath = "../../config.yaml"
+		log.Println("No CONFIG_PATH set, defaulting to", configPath)
+	}
+
+	configPath, err := filepath.Abs(configPath)
+	if err != nil {
+		return nil, err
+	}
+
 	file, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
@@ -34,6 +46,6 @@ func LoadConfig() (*Config, error) {
 	if err := yaml.Unmarshal(file, &cfg); err != nil {
 		return nil, err
 	}
-
+	log.Println(cfg.App.ServerURL)
 	return &cfg, nil
 }

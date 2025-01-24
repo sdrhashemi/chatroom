@@ -131,7 +131,7 @@ func (h *Handler) captureClientName(conn *websocket.Conn) (string, error) {
 		exists := h.Pool.UserNameExists(clientUserName)
 
 		if exists {
-			err = sendMessageViaWebsocket(conn, "Username already exists, enter another name: ")
+			err = sendMessageViaWebsocket(conn, "Username already exists,")
 			if err != nil {
 				return "", fmt.Errorf("failed to send duplicate name message: %v", err)
 			}

@@ -76,7 +76,7 @@ func (c *Client) readMessages() {
 		case "chatroom":
 			ui.DisplayNeutral(msg.Data.(string))
 		case "ack":
-			ui.DisplaySuccess("./")
+			ui.DisplaySuccess("[Sent]")
 		default:
 			ui.DisplayError(fmt.Sprintf("Unknown message type: %s", msg.Type), false)
 		}
