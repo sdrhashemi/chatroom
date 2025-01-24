@@ -107,10 +107,9 @@ func (h *Handler) captureClientName(conn *websocket.Conn) (string, error) {
 
 	for {
 
-		err := sendMessageViaWebsocket(conn, "Please enter a unique name: ")
+		err := sendMessageViaWebsocket(conn, "Enter a unique name: ")
 		if err != nil {
 			return "", fmt.Errorf("error sending username prompt: %v", err)
-
 		}
 
 		_, message, err := conn.ReadMessage()
@@ -120,7 +119,7 @@ func (h *Handler) captureClientName(conn *websocket.Conn) (string, error) {
 
 		clientUserName := strings.TrimSpace(string(message))
 		if clientUserName == "" {
-			err := sendMessageViaWebsocket(conn, "Name cannot be empty. enter your name again: ")
+			err := sendMessageViaWebsocket(conn, "Name cannot be empty.")
 			if err != nil {
 				return "", fmt.Errorf("failed to send empty name message: %v", err)
 			}
@@ -131,9 +130,9 @@ func (h *Handler) captureClientName(conn *websocket.Conn) (string, error) {
 		exists := h.Pool.UserNameExists(clientUserName)
 
 		if exists {
-			err = sendMessageViaWebsocket(conn, "Username already exists,")
+			err := sendMessageViaWebsocket(conn, "Name already taken.")
 			if err != nil {
-				return "", fmt.Errorf("failed to send duplicate name message: %v", err)
+				return "", fmt.Errorf("failed to send name taken message: %v", err)
 			}
 			continue
 
@@ -201,6 +200,20 @@ func (h *Handler) handleUserCommand(conn *websocket.Conn) error {
 	return nil
 }
 
+func usernamePrompt(conn *websocket.Conn) error {
+	prompt := map[string]string{
+		"type": "username",
+		"data": "enter name",
+	}
+	jsonPrompt, err := json.Marshal(prompt)
+	if err != nil {
+		return err
+	}
+	if err := conn.WriteMessage(websocket.TextMessage, jsonPrompt); err != nil {
+		return err
+	}
+	return nil
+}
 func sendClientAcknowledgment(conn *websocket.Conn) error {
 	okResponse := map[string]string{
 		"type": "ack",

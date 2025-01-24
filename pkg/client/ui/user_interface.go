@@ -16,12 +16,27 @@ const (
 	ColorReset  = "\033[0m"
 )
 
+/*
+	func PromptUserName() string {
+		scanner := bufio.NewScanner(os.Stdin)
+
+		scanner.Scan()
+		return strings.TrimSpace(scanner.Text())
+
+}
+*/
 func PromptUserName() string {
 	scanner := bufio.NewScanner(os.Stdin)
 
-	scanner.Scan()
-	return strings.TrimSpace(scanner.Text())
-
+	if scanner.Scan() {
+		input := strings.TrimSpace(scanner.Text())
+		if input != "" {
+			return input // Return the non-empty username
+		}
+	}
+	// If input is empty, prompt again
+	fmt.Println("Username cannot be empty. Please try again.")
+	return ""
 }
 
 func DisplayMessage(msg string) {

@@ -110,6 +110,7 @@ func (c *Client) writeMessages() {
 
 func (c *Client) handleUsernameSetup() bool {
 	for {
+
 		_, data, err := c.conn.ReadMessage()
 		if err != nil {
 			ui.DisplayError(fmt.Sprintf("Error reading server message: %v", err), false)
@@ -119,7 +120,7 @@ func (c *Client) handleUsernameSetup() bool {
 		ui.DisplayNeutral(string(data))
 
 		username := ui.PromptUserName()
-		if username == "" {
+		if username == "" || username == "\n" {
 			continue
 		}
 
